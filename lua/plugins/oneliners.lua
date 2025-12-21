@@ -17,4 +17,5 @@ return {
 			require("nvim-highlight-colors").setup({})
 		end,
 	},
+	{ "akinsho/git-conflict.nvim", version = "*", config = true },
 }
