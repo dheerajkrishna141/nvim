@@ -13,6 +13,7 @@ return {
             javascriptreact = { "prettierd", "prettier", stop_after_first = true },
             typescriptreact = { "prettierd", "prettier", stop_after_first = true },
             xml = { "xmlformatter" },
+            java = { "google-java-format", stop_after_first = true },
         },
         format_on_save = {
             -- These options will be passed to conform.format()

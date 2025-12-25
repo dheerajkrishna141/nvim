@@ -1,38 +1,7 @@
 local M = {}
 
--- Helper function to find lombok.jar
-local function find_lombok_jar()
-	local home = vim.fn.expand("~")
-
-	-- Try known locations for lombok.jar
-	local paths = {
-		-- Maven repository
-		home .. "/.m2/repository/org/projectlombok/lombok/1.18.38/lombok-1.18.38.jar",
-		home .. "/.m2/repository/org/projectlombok/lombok/1.18.36/lombok-1.18.36.jar",
-		home .. "/.m2/repository/org/projectlombok/lombok/1.18.34/lombok-1.18.34.jar",
-		home .. "/.m2/repository/org/projectlombok/lombok/1.18.32/lombok-1.18.32.jar",
-		home .. "/.m2/repository/org/projectlombok/lombok/1.18.30/lombok-1.18.30.jar",
-	}
-
-	-- Check each path
-	for _, path in ipairs(paths) do
-		if vim.fn.filereadable(path) == 1 then
-			return path
-		end
-	end
-
-	-- Fallback: try to glob for any lombok jar
-	local glob_result = vim.fn.glob(home .. "/.m2/repository/org/projectlombok/lombok/*/lombok-*.jar", false, true)
-	for _, jar in ipairs(glob_result) do
-		if not jar:match("sources") and not jar:match("javadoc") and vim.fn.filereadable(jar) == 1 then
-			return jar
-		end
-	end
-
-	return nil
-end
-
 function M:setup()
+	local home = vim.fn.expand("~")
 	local project_name = vim.fn.fnamemodify(vim.fn.getcwd(), ":p:h:t")
 	local workspace_dir = vim.fn.stdpath("cache") .. "/jdtls/workspace/" .. project_name
 
@@ -48,16 +17,17 @@ function M:setup()
 		"-Dlog.protocol=true",
 		"-Dlog.level=ALL",
 		"-Xmx1g",
+		"-javaagent:" .. home .. "/.local/share/nvim/mason/packages/jdtls/lombok.jar",
 	}
 
-	-- Add Lombok agent if found
-	local lombok_jar = find_lombok_jar()
-	if lombok_jar then
-		vim.notify("JDTLS: Found Lombok at " .. lombok_jar, vim.log.levels.INFO)
-		table.insert(cmd, "-javaagent:" .. lombok_jar)
-	else
-		vim.notify("JDTLS: Lombok jar not found, annotation processing disabled", vim.log.levels.WARN)
-	end
+	-- -- Add Lombok agent if found
+	-- local lombok_jar = find_lombok_jar()
+	-- if lombok_jar then
+	-- 	vim.notify("JDTLS: Found Lombok at " .. lombok_jar, vim.log.levels.INFO)
+	-- 	table.insert(cmd, "-javaagent:" .. lombok_jar)
+	-- else
+	-- 	vim.notify("JDTLS: Lombok jar not found, annotation processing disabled", vim.log.levels.WARN)
+	-- end
 
 	-- Continue with remaining arguments
 	vim.list_extend(cmd, {
@@ -95,20 +65,15 @@ function M:setup()
 		-- 💀
 		-- This is the default if not provided, you can remove it. Or adjust as needed.
 		-- One dedicated LSP server & client will be started per unique root_dir
-		root_dir = require("jdtls.setup").find_root({ ".git", "mvnw", "gradlew" }),
+		root_dir = require("jdtls.setup").find_root({ ".git", "mvnw", "gradlew", "pom.xml", "build.gradle" }),
 
 		-- Here you can configure eclipse.jdt.ls specific settings
 		-- See https://github.com/eclipse/eclipse.jdt.ls/wiki/Running-the-JAVA-LS-server-from-the-command-line#initialize-request
 		-- for a list of options
 		settings = {
 			java = {
-				-- Enable Lombok annotation processing
-				jdt = {
-					ls = {
-						lombokSupport = {
-							enabled = true,
-						},
-					},
+				format = {
+					enabled = false,
 				},
 			},
 		},
@@ -127,6 +92,37 @@ function M:setup()
 	-- This starts a new client & server,
 	-- or attaches to an existing client & server depending on the `root_dir`.
 	require("jdtls").start_or_attach(config)
+	vim.keymap.set("n", "<leader>co", "<Cmd>lua require'jdtls'.organize_imports()<CR>", { desc = "Organize Imports" })
+	vim.keymap.set(
+		"n",
+		"<leader>crv",
+		"<Cmd>lua require('jdtls').extract_variable()<CR>",
+		{ desc = "Extract Variable" }
+	)
+	vim.keymap.set(
+		"v",
+		"<leader>crv",
+		"<Esc><Cmd>lua require('jdtls').extract_variable(true)<CR>",
+		{ desc = "Extract Variable" }
+	)
+	vim.keymap.set(
+		"n",
+		"<leader>crc",
+		"<Cmd>lua require('jdtls').extract_constant()<CR>",
+		{ desc = "Extract Constant" }
+	)
+	vim.keymap.set(
+		"v",
+		"<leader>crc",
+		"<Esc><Cmd>lua require('jdtls').extract_constant(true)<CR>",
+		{ desc = "Extract Constant" }
+	)
+	vim.keymap.set(
+		"v",
+		"<leader>crm",
+		"<Esc><Cmd>lua require('jdtls').extract_method(true)<CR>",
+		{ desc = "Extract Method" }
+	)
 end
 
 return M
