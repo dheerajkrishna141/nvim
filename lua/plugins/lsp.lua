@@ -115,6 +115,9 @@ return {
                     if server_name == "lua_ls" then
                         return
                     end -- avoid starting with {}
+                    if server_name == "ts_ls" then
+                        return
+                    end -- avoid starting with {}
                     if server_name == "jdtls" then
                         return
                     end -- avoid starting with {}
@@ -135,6 +138,22 @@ return {
                                     library = { vim.env.VIMRUNTIME },
                                 },
                             },
+                        },
+                    })
+                end,
+
+                ts_ls = function()
+                    vim.lsp.config.ts_ls.setup({
+                        handlers = {
+                            ["textDocument/publishDiagnostics"] = function(_, result, ctx, config)
+                                -- Filter out indentation diagnostics (code 80001)
+                                if result.diagnostics then
+                                    result.diagnostics = vim.tbl_filter(function(diagnostic)
+                                        return diagnostic.code ~= 80001
+                                    end, result.diagnostics)
+                                end
+                                vim.lsp.diagnostic.on_publish_diagnostics(_, result, ctx, config)
+                            end,
                         },
                     })
                 end,
